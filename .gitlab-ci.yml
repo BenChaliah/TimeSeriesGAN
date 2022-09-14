@@ -1,0 +1,36 @@
+image: python:3.9.4
+
+variables:
+  notebook_folder: "/notebook_store/"
+  cluster_id: ""
+  DATABRICKS_TOKEN: ""
+  DATABRICKS_HOST: ""
+
+before_script:
+  - chmod +x ./databricks-ci/*.sh
+  - apt-get update && apt-get install jq -y
+  - pip install -r databricks-cli==0.16.5
+
+stages:
+  - Starting_cluster
+  - Importing_notebooks_and_data
+  - Running_notebooks
+
+Starting_cluster:
+  stage: Starting_cluster
+  script:
+    - ./databricks-ci/start_cls.sh
+
+Importing_motebooks_and_data:
+  stage: Importing_notebooks_and_data
+  script:
+    - databricks libraries install --cluster-id ${cluster_id} --pypi-package mlflow==1.8.0
+    - databricks libraries install --cluster-id ${cluster_id} --pypi-package optuna==3.0.1
+    - databricks workspace import TSGAN_Hypertuning.ipynb ${notebook_folder} -o
+
+Running_notebooks:
+  stage: Running_notebooks
+  script:
+    - export notebook_name=TSGAN_Hypertuning
+    - echo "Running Notebook ${notebook_name}"
+    - ./databricks-ci/runNotebook.sh
